@@ -44,14 +44,6 @@ How did your models from last time perform? In this exercise you have to compare
 - test the performance of the models on the test data (Tips: google the functions "predict()")
 - optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
 
-```{r}
-demo_test <- read_csv("Demo.csv")
-LU_test <- read_csv("LU.csv")
-token_test <- read_csv("Word.csv")
-
-df <- read_csv("merged_df_assignment1.csv")
-df$X1 <- NULL
-```
 
 
 
@@ -109,10 +101,20 @@ CleanUpData <- function(Demo,LU,Word){
 }
 
 # Load training Data
-
+# Test data
+Demo <- read_csv("demo_test.csv")
+LU <- read_csv("LU_test.csv")
+Word <- read_csv("token_test.csv")
+#Training data
+df <- read_csv("data_clean.csv")
 
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
-
+#old name: "quadratic"
+chi_mlu1 <- lmer(CHI_MLU ~ VISIT + VISIT2 + Diagnosis + VISIT*Diagnosis + (1 + Diagnosis + MOT_MLU | SUBJ), df)
+#old name: "pm2_quadratic"
+mot_mlu <- lmer(MOT_MLU ~ VISIT + Diagnosis + VISIT2 + VISIT*Diagnosis + (1 + CHI_MLU | SUBJ), df)
+#old name: "model8"
+chi_mlu2 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw + (1 | SUBJ), new_df)
 
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
 
