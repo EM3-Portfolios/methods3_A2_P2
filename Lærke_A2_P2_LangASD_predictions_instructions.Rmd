@@ -44,6 +44,16 @@ How did your models from last time perform? In this exercise you have to compare
 - test the performance of the models on the test data (Tips: google the functions "predict()")
 - optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
 
+```{r}
+demo_test <- read_csv("Demo.csv")
+LU_test <- read_csv("LU.csv")
+token_test <- read_csv("Word.csv")
+
+df <- read_csv("merged_df_assignment1.csv")
+df$X1 <- NULL
+```
+
+
 
 ```{r, include = FALSE}
 
