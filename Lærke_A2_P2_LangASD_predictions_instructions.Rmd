@@ -118,7 +118,28 @@ chi_mlu2 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw + (1 | SUBJ), new_df)
 
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
 
+pacman::p_load("caret", "lme4")
+df$Visit2 <- (df$Visit)^2
 
+k <-  6
+folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE <- rep(NA, k)
+testRMSE <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(df, !(Child.ID %in% fold))
+  test = subset(df, Child.ID %in% fold)
+  model = lmer(CHI_MLU ~ Visit + Visit2 + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE[i] <- RMSE(train$types_CHI, fitted(model))
+  testRMSE[i] <- RMSE(test$types_CHI, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE
+testRMSE
 
 #- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
 # Test data
