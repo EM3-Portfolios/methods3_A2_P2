@@ -105,12 +105,50 @@ Demo <- read_csv("demo_test.csv")
 LU <- read_csv("token_test.csv")
 
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
+#"fixing" the clean_data so we have an coloum with visit^2, and an ados were 
+df$Visit2 <- df$Visit^2
+#_____________________________________
+new_df <- read_csv("data_clean.csv")
+new_df$X1 <- NULL
+
+# Subsetting the columns that we want to work with:
+subset <- select(new_df, Child.ID, Visit, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
+
+# Overwriting the clinical scores from visits 2-6 with the scores from visit 1 for each participant:
+
+# have a dataset with 1 row per name from the 1st visit only and when it merges with the merged_df (after having renamed ADOS to ADOS1 etc of course) the visit 1 values should be copied to the other 5 visits as well in columns ADOS1 etc. and stay original in the original ADOS column. remember to remove column VISIT in subset_2f before merging with merged_df.
+
+# only including visit 1 in the subset
+subset <- filter(subset, Visit == 1)
+
+# deleting the visit column
+subset <- select(subset, -Visit)
+
+# rename clinical measures variables
+subset <- dplyr::rename(subset, ADOS2 = ADOS)
+subset <- dplyr::rename(subset, MullenRaw2 = MullenRaw)
+subset <- dplyr::rename(subset, ExpressiveLangRaw2 = ExpressiveLangRaw)
+subset <- dplyr::rename(subset, Socialization2 = Socialization)
+
+
+# merging the subset_2f with merged_df
+new_df <- merge(new_df, subset, by = "Child.ID")
+  
+new_df$Visit2 <- df$Visit^2
+#______________________________________________  
+  
+  
+  
+  
+  
+  
 #old name: "quadratic"
-chi_mlu1 <- lmer(CHI_MLU ~ Visit + VISIT2 + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | SUBJ), df)
-#old name: "pm2_quadratic"
-mot_mlu <- lmer(MOT_MLU ~ VISIT + Diagnosis + VISIT2 + VISIT*Diagnosis + (1 + CHI_MLU | SUBJ), df)
+chi_mlu1 <- lmer(CHI_MLU ~ Visit + Visit2 + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), na.action = na.exclude, new_df)
+
 #old name: "model8"
-chi_mlu2 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw + (1 | SUBJ), new_df)
+chi_mlu2 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw + (1 | Child.ID), na.action = na.exclude, new_df)
+
+anova(chi_mlu1, chi_mlu2)
 
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
 
