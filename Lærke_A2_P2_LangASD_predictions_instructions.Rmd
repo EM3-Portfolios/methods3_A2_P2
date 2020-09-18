@@ -48,8 +48,15 @@ How did your models from last time perform? In this exercise you have to compare
 
 
 ```{r, include = FALSE}
+pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret, MuMIn)
+```
 
-pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret)
+
+```{r, include = FALSE}
+## Test data
+Demo <- read_csv("demo_test.csv")
+LU <- read_csv("LU_test.csv")
+Word <- read_csv("token_test.csv")
 
 ## Clean up function, included to inspire you
 
@@ -99,27 +106,128 @@ CleanUpData <- function(Demo,LU,Word){
 
   return(Data)
 }
+```
 
+
+```{r, include = FALSE}
 # Load training Data
-# Test data
-Demo <- read_csv("demo_test.csv")
-LU <- read_csv("LU_test.csv")
-Word <- read_csv("token_test.csv")
-#Training data
 df <- read_csv("data_clean.csv")
 
+# Adding our squared visit column
+df$Visit2 <- (df$Visit)^2
+
+#DF <- read_csv("merged_df_assignment1.csv")
+```
+
+
+```{r, include = FALSE}
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
 #old name: "quadratic"
-chi_mlu1 <- lmer(CHI_MLU ~ VISIT + VISIT2 + Diagnosis + VISIT*Diagnosis + (1 + Diagnosis + MOT_MLU | SUBJ), df)
+chi_mlu1 <- lmer(CHI_MLU ~ Visit + Visit2 + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
 #old name: "pm2_quadratic"
-mot_mlu <- lmer(MOT_MLU ~ VISIT + Diagnosis + VISIT2 + VISIT*Diagnosis + (1 + CHI_MLU | SUBJ), df)
+  # mot_mlu <- lmer(MOT_MLU ~ VISIT + Diagnosis + VISIT2 + VISIT*Diagnosis + (1 + CHI_MLU | SUBJ), df)
 #old name: "model8"
-chi_mlu2 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw + (1 | SUBJ), new_df)
+chi_mlu2 <- lmer(CHI_MLU ~ Age * ADOS1 + ExpressiveLangRaw + (1 | Child.ID), df)
+```
 
+
+```{r}
+
+```
+
+
+
+```{r, include = FALSE}
+## Comparing the models:
+
+#writing AIC values down
+m_aic <- AIC(chi_mlu1, chi_mlu2)
+#assigning weights to the models corresponding to their AIC values
+Weights(m_aic)
+#writing down BIC values
+m_bic <- BIC(chi_mlu1, chi_mlu2)
+#assigning weights to the models corresponding to their AIC values
+Weights(m_bic)
+#putting results into one dataframe:
+mdl_com_df <- tibble( Model = c("chi_mlu1", "chi_mlu2"),
+                          AIC=m_aic$AIC, 
+                          AIC_Weight = round(Weights(m_aic), 3), #rounding weights so it looks nicer in the dataframe
+                          BIC=m_bic$BIC,
+                          BIC_Weight = round(Weights(m_bic),3) #rounding weights so it looks nicer in the dataframe
+                          )
+mdl_com_df
+```
+
+
+```{r, include = FALSE}
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
 
+# Removing the rows where the CHI_MLU is NA
+completeFun <- function(data, desiredCols) {
+  completeVec <- complete.cases(data[, desiredCols])
+  return(data[completeVec, ])
+}
+
+DF <- completeFun(DF, "ADOS2")
+
+DF <- completeFun(DF, "ExpressiveLangRaw")
+```
+
+
+```{r, include = FALSE}
 pacman::p_load("caret", "lme4")
-df$Visit2 <- (df$Visit)^2
+
+
+
+DF$Visit2 <- (DF$VISIT)^2
+
+k <-  6
+folds <- createFolds(unique(DF$SUBJ), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE <- rep(NA, k)
+testRMSE <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(DF, !(SUBJ %in% fold))
+  test = subset(DF, SUBJ %in% fold)
+  model = lmer(CHI_MLU ~ VISIT + Diagnosis + VISIT*Diagnosis + (1 | SUBJ), DF)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE[i] <- RMSE(train$types_CHI, fitted(model))
+  testRMSE[i] <- RMSE(test$types_CHI, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE
+testRMSE
+
+
+###########
+
+DF$Visit2 <- (DF$VISIT)^2
+
+k <-  6
+folds <- createFolds(unique(DF$SUBJ), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE <- rep(NA, k)
+testRMSE <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(DF, !(SUBJ %in% fold))
+  test = subset(DF, SUBJ %in% fold)
+  model = lmer(CHI_MLU ~ VISIT + Visit2 + Diagnosis + VISIT*Diagnosis + (1 + Diagnosis + MOT_MLU | SUBJ), DF)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE[i] <- RMSE(train$types_CHI, fitted(model))
+  testRMSE[i] <- RMSE(test$types_CHI, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE
+testRMSE
+
+
+################
 
 k <-  6
 folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
@@ -130,7 +238,7 @@ i <- 1
 for (fold in folds){
   train = subset(df, !(Child.ID %in% fold))
   test = subset(df, Child.ID %in% fold)
-  model = lmer(CHI_MLU ~ Visit + Visit2 + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
+  model = lmer(CHI_MLU ~ Age * ADOS1 + ExpressiveLangRaw + (1 | Child.ID), df)
   test$prediction <- predict(model, test, allow.new.levels = TRUE)
   train$prediction <- fitted(model)
   trainRMSE[i] <- RMSE(train$types_CHI, fitted(model))
