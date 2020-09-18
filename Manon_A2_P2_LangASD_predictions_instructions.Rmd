@@ -45,9 +45,6 @@ How did your models from last time perform? In this exercise you have to compare
 - optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
 
 
-```{r, include = FALSE}
-
-pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret)
 
 ## Clean up function, included to inspire you
 
@@ -98,10 +95,24 @@ CleanUpData <- function(Demo,LU,Word){
   return(Data)
 }
 
+
+
+
+```{r, include = FALSE}
+
+pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret, lme4)
+
 # Load training Data
+df <- read_csv("data_clean.csv")
+
+# creating ADOS2 and other variable columns without NA, but copied from visit 1
+
 
 
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
+# The models: best quad for h1, last one with age instead of VISIT
+quadratic <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
+model8 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw + (1 | SUBJ), new_df)
 
 
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
@@ -164,6 +175,10 @@ You want to evaluate:
 - how does the child fare compared to the model predictions at Visit 6? Is the child below or above expectations? (tip: use the predict() function on Bernie's data only and compare the prediction with the actual performance of the child)
 
 ```{r}
+# loading test data
+Demo <- read_csv("demo_test.csv")
+LU <- read_csv("LU_test.csv")
+Word <- read_csv("token_test.csv")
 
 ```
 
