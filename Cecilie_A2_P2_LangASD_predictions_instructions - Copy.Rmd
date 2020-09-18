@@ -47,11 +47,11 @@ How did your models from last time perform? In this exercise you have to compare
 
 ```{r, include = FALSE}
 
-pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret)
+pacman::p_load(readr, dplyr, stringr, lmerTest, Metrics, caret, tidyverse)
 
 ## Clean up function, included to inspire you
 
-CleanUpData <- function(Demo,LU,Word){
+#CleanUpData <- function(Demo,LU,Word){
   
   Speech <- merge(LU, Word) %>% 
     rename(
@@ -99,10 +99,18 @@ CleanUpData <- function(Demo,LU,Word){
 }
 
 # Load training Data
-
+df <- read_csv("data_clean.csv")
+Word <- read_csv("token_test.csv")
+Demo <- read_csv("demo_test.csv")
+LU <- read_csv("token_test.csv")
 
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
-
+#old name: "quadratic"
+chi_mlu1 <- lmer(CHI_MLU ~ Visit + VISIT2 + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | SUBJ), df)
+#old name: "pm2_quadratic"
+mot_mlu <- lmer(MOT_MLU ~ VISIT + Diagnosis + VISIT2 + VISIT*Diagnosis + (1 + CHI_MLU | SUBJ), df)
+#old name: "model8"
+chi_mlu2 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw + (1 | SUBJ), new_df)
 
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
 
