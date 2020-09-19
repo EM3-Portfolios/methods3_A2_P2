@@ -102,10 +102,12 @@ CleanUpData <- function(Demo,LU,Word){
   return(Data)
 }
 
+```
+```{r}
 # Load training Data
 
 df1 <- read_csv("merged_df_assignment1.csv")
-
+df1$X1 <- NULL
 df <- read_csv("data_clean.csv")
 
 Demo <- read_csv("demo_test.csv")
@@ -113,34 +115,33 @@ LU <- read_csv("LU_test.csv")
 Word <- read_csv("token_test.csv")
 
 #First we create a subset with the clinical values we need for the models, then we equal all visits to 1, and delete the visit column, and then rename ADOS to ADOS2 for it to merge as an aditional column
+
 subset <- select(df, Child.ID, Visit, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
 subset <- filter(subset, Visit == 1)
 subset <- select(subset, -Visit)
 subset <- dplyr::rename(subset, ADOS2 = ADOS)
+
 #Now we merge the two dataframes df and subset so that we can have ADOS2 as a repetition of visit 1 data for each visit
 new_df <- merge(df, subset, by = "Child.ID")
 
+```
 
-#- recreate the models you chose last time (just write the code again and apply it to Train Data)
+```{r}
+#Recreate the models you chose last time (just write the code again and apply it to Train Data)
 
 #old name: "quadratic"
 chi_mlu1 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU |Child.ID), new_df)
 #old name: "model8"
-chi_mlu2 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw.x + (1 | Child.ID), new_df)
+chi_mlu2 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw.x + (1 | Child.ID), new_df)
+
 
 library(MuMIn)
 
-r.squaredGLMM(chi_mlu1)
-r.squaredGLMM(chi_mlu2)
+r.squaredGLMM(chi_mlu1) #Rsquared: 0.825
+r.squaredGLMM(chi_mlu2) #Rsquared: 0.846
 
-chi_mlu1 <- lmer(CHI_MLU ~ VISIT + VISIT2 + Diagnosis + VISIT*Diagnosis + (1 + Diagnosis + MOT_MLU | SUBJ), df1)
-#old name: "pm2_quadratic"
-mot_mlu <- lmer(MOT_MLU ~ VISIT + Diagnosis + VISIT2 + VISIT*Diagnosis + (1 + CHI_MLU | SUBJ), df1)
-#old name: "model8"
-chi_mlu2 <- lmer(CHI_MLU ~ I(Age^2) * I(ADOS2^2) + I(ExpressiveLangRaw^2) + (1 | SUBJ), df1)
 
-#- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
-
+#Calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
 
 predictions <- predict(chi_mlu2, df)
 
@@ -148,15 +149,20 @@ rmse(chi_mlu1$df, predictions)
 
 predictions <- fitted(chi_mlu1, df)
 
+
+
 #- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
+
+
 # Test data
 
 #- test the performance of the models on the test data (Tips: google the functions "predict()")
 
 
-#- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
 
+#- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
 ```
+
 
 [HERE GOES YOUR ANSWER]
 
