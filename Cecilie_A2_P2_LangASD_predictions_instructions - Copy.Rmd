@@ -47,7 +47,7 @@ How did your models from last time perform? In this exercise you have to compare
 
 ```{r, include = FALSE}
 
-pacman::p_load(readr, dplyr, stringr, lmerTest, Metrics, caret, tidyverse)
+pacman::p_load(readr, dplyr, stringr, lmerTest, Metrics, caret, tidyverse,lme4)
 
 ## Clean up function, included to inspire you
 
@@ -143,16 +143,34 @@ new_df$Visit2 <- df$Visit^2
   
   
 #old name: "quadratic"
-chi_mlu1 <- lmer(CHI_MLU ~ Visit + Visit2 + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), na.action = na.exclude, new_df)
+chi_mlu1 <- lmer(CHI_MLU ~ Visit + Visit2 + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), new_df)
 
 #old name: "model8"
-chi_mlu2 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw + (1 | Child.ID), na.action = na.exclude, new_df)
+chi_mlu2 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw + (1 | Child.ID), new_df)
 
-anova(chi_mlu1, chi_mlu2)
+
 
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
 
+k <-  6
+folds <- createFolds(unique(new_df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE <- rep(NA, k)
+testRMSE <- rep(NA, k)
+i <- 1
 
+for (fold in folds){
+  train = subset(new_df, !(Child.ID %in% fold))
+  test = subset(new_df, Child.ID %in% fold)
+  model = chi_mlu1 # or lmer(CHI_MLU ~ Visit + Visit2 + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), train)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE[i] <- RMSE(train$types_CHI, fitted(model))
+  testRMSE[i] <- RMSE(test$types_CHI, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE
+testRMSE
 
 #- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
 # Test data
