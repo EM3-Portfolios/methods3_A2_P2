@@ -146,7 +146,7 @@ new_df$Visit2 <- df$Visit^2
 chi_mlu1 <- lmer(CHI_MLU ~ Visit + Visit2 + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), new_df)
 
 #old name: "model8"
-chi_mlu2 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw + (1 | Child.ID), new_df)
+chi_mlu2 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw + (1 | Child.ID), new_df)
 
 
 
@@ -171,6 +171,8 @@ for (fold in folds){
 
 trainRMSE
 testRMSE
+
+
 
 #- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
 # Test data
