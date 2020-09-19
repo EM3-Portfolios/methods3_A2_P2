@@ -128,7 +128,7 @@ df <- merge(df, subset, by = "Child.ID")
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
 # The models: best quad for h1, last one with age instead of VISIT
 quadratic <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
-model8 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw2 + (1 | Child.ID), df)
+model8 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw + (1 | Child.ID), df)
 
 MuMIn::r.squaredGLMM(quadratic)
 MuMIn::r.squaredGLMM(model8)
