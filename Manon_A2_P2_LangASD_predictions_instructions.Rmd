@@ -98,7 +98,7 @@ CleanUpData <- function(Demo,LU,Word){
 
 
 
-```{r, include = FALSE}
+```{r setting up data and dataframes and stuff}
 
 pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret, lme4)
 
@@ -107,12 +107,32 @@ df <- read_csv("data_clean.csv")
 
 # creating ADOS2 and other variable columns without NA, but copied from visit 1
 
+# subsetting the 6 comlumns 
+subset <- select(df, Child.ID, Visit, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
+# only including visit 1 in the subset
+subset <- filter(subset, Visit == 1)
+# deleting the visit column
+subset <- select(subset, -Visit)
+# rename clinical measures variables
+subset <- dplyr::rename(subset, ADOS2 = ADOS)
+subset <- dplyr::rename(subset, MullenRaw2 = MullenRaw)
+subset <- dplyr::rename(subset, ExpressiveLangRaw2 = ExpressiveLangRaw)
+subset <- dplyr::rename(subset, Socialization2 = Socialization)
+# merging the subset with df
+df <- merge(df, subset, by = "Child.ID")
+
+```
 
 
+```{r load models and stuff, include = FALSE}
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
 # The models: best quad for h1, last one with age instead of VISIT
 quadratic <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
-model8 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw + (1 | SUBJ), new_df)
+model8 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw2 + (1 | Child.ID), df)
+
+MuMIn::r.squaredGLMM(quadratic)
+MuMIn::r.squaredGLMM(model8)
+
 
 
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
