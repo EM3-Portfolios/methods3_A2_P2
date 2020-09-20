@@ -45,7 +45,7 @@ How did your models from last time perform? In this exercise you have to compare
 - optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
 
 
-
+```{r the clean up function that was included}
 ## Clean up function, included to inspire you
 
 CleanUpData <- function(Demo,LU,Word){
@@ -94,13 +94,15 @@ CleanUpData <- function(Demo,LU,Word){
 
   return(Data)
 }
+```
 
 
 
 
-```{r setting up data and dataframes and stuff}
 
-pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret, lme4)
+```{r setting up data and columns}
+
+pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret, lme4, caret)
 
 # Load training Data
 df <- read_csv("data_clean.csv")
@@ -124,7 +126,7 @@ df <- merge(df, subset, by = "Child.ID")
 ```
 
 
-```{r load models and stuff, include = FALSE}
+```{r load models and view r.squared}
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
 # The models: best quad for h1, last one with age instead of VISIT
 quadratic <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
@@ -132,22 +134,80 @@ model8 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw + (1 | Child.ID), 
 
 MuMIn::r.squaredGLMM(quadratic)
 MuMIn::r.squaredGLMM(model8)
+```
 
 
-
+```{r evaluating performance of model using RMSE() function}
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
+k <-  6
+folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE <- rep(NA, k)
+testRMSE <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(df, !(Child.ID %in% fold))
+  test = subset(df, Child.ID %in% fold)
+  model = lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw + (1 | Child.ID), df)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model) #this is the line that causes the error "replacement has x rows, data has y" - We think.
+  trainRMSE[i] <- RMSE(train$types_CHI, fitted(model))
+  testRMSE[i] <- RMSE(test$types_CHI, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE
+testRMSE
 
 
 
-#- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
-# Test data
+# I will just try to only use RMSE() instead of this loop that we can't figure out.
+# OK, so using the example from the defaultSummary {caret} help page:
+predicted_A2 <- fitted(model8)
+observed_A2 <- df$CHI_MLU
+observed_A2 <- na.omit(observed_A2)
+RMSE(predicted_A2, observed_A2)
 
-#- test the performance of the models on the test data (Tips: google the functions "predict()")
+length(predicted_A2)
+length(observed_A2)
+#they are still not the same length....
 
 
-#- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
+
+
+
+# https://www.rdocumentation.org/packages/Metrics/versions/0.1.4/topics/rmse
+# I think I got model evaluation compared to the training data to work :-)
+# So the average residual (difference between observed and predicted value) is 0.29 from the observed traning data to the model predictions.
+predictions_a2 <- predict(model8, df, allow.new.level = TRUE)
+RMSE(df$CHI_MLU, predictions_a2, na.rm = TRUE)
 
 ```
+
+
+```{r}
+#- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
+# loading test datasets
+Demo <- read_csv("demo_test.csv")
+LU <- read_csv("LU_test.csv")
+Word <- read_csv("token_test.csv")
+#trying to use the CleanUpData() function on them
+CleanTest_df <- CleanUpData(Demo, LU, Word)
+# yay this all works :-)
+```
+
+
+```{r}
+#- test the performance of the models on the test data (Tips: google the functions "predict()")
+
+```
+
+
+```{r}
+#- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
+```
+
+
 
 [HERE GOES YOUR ANSWER]
 
