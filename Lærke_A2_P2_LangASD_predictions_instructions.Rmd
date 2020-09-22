@@ -266,11 +266,11 @@ In this exercise you have to use cross-validation to calculate the predictive er
 
 ```{r}
 # Basic model:
-basic <- lmer(CHI_MLU ~ Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df) # Used to be called lm4
+#basic <- lmer(CHI_MLU ~ Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
 
 
 # For the basic model:
-k <-  6
+k <-  10
 folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
 trainRMSE_basic <- rep(NA, k)
 testRMSE_basic <- rep(NA, k)
@@ -291,7 +291,7 @@ trainRMSE_basic
 testRMSE_basic
 
 # For the other model:
-k <-  6
+k <-  10
 folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
 trainRMSE_m8 <- rep(NA, k)
 testRMSE_m8 <- rep(NA, k)
@@ -312,7 +312,11 @@ trainRMSE_m8
 testRMSE_m8
 
 crossValidation <- data.frame(trainRMSE_basic, testRMSE_basic, trainRMSE_m8, testRMSE_m8)
+crossValidation$basic_diff <- abs(crossValidation$trainRMSE_basic - crossValidation$testRMSE_basic)
+crossValidation$m8_diff <- abs(crossValidation$trainRMSE_m8 - crossValidation$testRMSE_m8)
 
+mean(crossValidation$basic_diff)
+mean(crossValidation$m8_diff)
 ```
 
 
@@ -324,6 +328,7 @@ crossValidation <- data.frame(trainRMSE_basic, testRMSE_basic, trainRMSE_m8, tes
 
 ```{r}
 # Create the basic model of ChildMLU as a function of Time and Diagnosis (don't forget the random effects!).
+basic <- lmer(CHI_MLU ~ Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df) # Used to be called lm4
 
 #- Make a cross-validated version of the model. (Tips: google the function "createFolds";  loop through each fold, train a model on the other folds and test it on the fold)
 
