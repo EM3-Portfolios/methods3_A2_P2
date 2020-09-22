@@ -181,6 +181,8 @@ mean(CleanTest_df$CHI_MLU, na.rm = T)
 
 ```{r}
 #- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
+# optional1 <- predictInterval(model8, CleanTest_df, allow.new.levels = TRUE)
+# predictInterval() function not found
 ```
 
 
