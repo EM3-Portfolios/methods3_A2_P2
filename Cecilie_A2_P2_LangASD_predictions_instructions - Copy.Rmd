@@ -163,9 +163,8 @@ Word <- read_csv("token_test.csv")
 CleanTest_df <- CleanUpData(Demo, LU, Word)
 
 
-
 # renaming some variable names to fit the clean traning data
-#CleanTest_df <- dplyr::rename(CleanTest_df, ADOS2 = Ados1)
+CleanTest_df <- dplyr::rename(CleanTest_df, ADOS1 = Ados1)
 ```
 
 
