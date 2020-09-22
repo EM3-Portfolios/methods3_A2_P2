@@ -1,12 +1,12 @@
 ---
 title: "Assignment 2 - Language Development in ASD - Making predictions"
-author: "Riccardo Fusaroli"
-date: "August 9, 2019"
+author: "Gacilda Anne"
+date: "September 17, 2020"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE) 
 ```
 
 ## Welcome to the second exciting part of the Language Development in ASD exercise
@@ -45,14 +45,26 @@ How did your models from last time perform? In this exercise you have to compare
 - optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
 
 
-```{r, include = FALSE}
+```{r}
+pacman::p_load(readr, dplyr, stringr, lmerTest, Metrics, caret, tidyverse,lme4)
 
-pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret)
+df <- read_csv("data_clean.csv")
+df$X1 <- NULL
+
+
+```
+
+
+
+```{r, include = FALSE}
 
 ## Clean up function, included to inspire you
 
 CleanUpData <- function(Demo,LU,Word){
-  
+      dplyr::select(
+      Child.ID, Visit, MOT_MLU, CHI_MLU, types_MOT, types_CHI, tokens_MOT, tokens_CHI
+    )
+
   Speech <- merge(LU, Word) %>% 
     rename(
       Child.ID = SUBJ, 
@@ -61,9 +73,6 @@ CleanUpData <- function(Demo,LU,Word){
       Visit = as.numeric(str_extract(Visit, "\\d")),
       Child.ID = gsub("\\.","", Child.ID)
       ) %>%
-    dplyr::select(
-      Child.ID, Visit, MOT_MLU, CHI_MLU, types_MOT, types_CHI, tokens_MOT, tokens_CHI
-    )
   
   Demo <- Demo %>%
     dplyr::select(
@@ -98,20 +107,81 @@ CleanUpData <- function(Demo,LU,Word){
   return(Data)
 }
 
+```
+
+```{r}
+
 # Load training Data
+df <- read_csv("data_clean.csv")
+
+df$Visit2 <- (df$Visit)^2
+
+subset <- select(df, Child.ID, Visit, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
+subset <- filter(subset, Visit == 1)
+subset <- dplyr::rename(subset, ADOS2 = ADOS)
+
+df <- merge(df, subset, by = "Child.ID")
+
+# Rename column where names to remove ".x" from column names
+names(df)[names(df) == "Visit.x"] <- "Visit"
+names(df)[names(df) == "ExpressiveLangRaw.x"] <- "ExpressiveLangRaw"
+names(df)[names(df) == "Socialization.x"] <- "Socialization"
+names(df)[names(df) == "MullenRaw.x"] <- "MullenRaw"
+df
+
+```
 
 
+
+
+```{r}
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
 
+# Best model
+chi_mlu2 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw + (1 | Child.ID), df)
 
-#- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
+# Comparing models to see which to use now (anova doesn't work, but might try just looking at effect sizes - r^2)
+MuMIn::r.squaredGLMM(chi_mlu2)
 
 
+
+#- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse()). Use package "caret" for rmse() function.
+
+
+# Manon's code
+# So the average residual (difference between observed and predicted value) is 0.29 from the observed traning data to the model predictions.
+predictions_a2 <- predict(chi_mlu2, df, allow.new.level = TRUE)
+RMSE(df$CHI_MLU, predictions_a2, na.rm = TRUE)
+
+
+# For context, the mean CHI_MLU in the training data is 1.99 (the RMSE is in the same original measurement unit)
+mean(df$CHI_MLU, na.rm = T)
+
+```
+
+
+
+```{r}
 
 #- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
-# Test data
+# loading test datasets
+
+Demo <- read_csv("demo_test.csv")
+LU <- read_csv("LU_test.csv")
+Word <- read_csv("token_test.csv")
+
+
+#trying to use the CleanUpData() function on them
+CleanTest_df <- CleanUpData(Demo, LU, Word)
+
+# Renaming column names to fit with df (train data)
+CleanTest_df <- dplyr::rename(CleanTest_df, ADOS2 = Ados1)
+
+
 
 #- test the performance of the models on the test data (Tips: google the functions "predict()")
+predictions_againstTrain <- predict(chi_mlu2, CleanTest_df, allow.new.levels = TRUE)
+RMSE(CleanTest_df$CHI_MLU, predictions_againstTrain, na.rm = TRUE)
 
 
 #- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
@@ -119,6 +189,8 @@ CleanUpData <- function(Demo,LU,Word){
 ```
 
 [HERE GOES YOUR ANSWER]
+
+
 
 ### Exercise 2) Model Selection via Cross-validation (N.B: ChildMLU!)
 
