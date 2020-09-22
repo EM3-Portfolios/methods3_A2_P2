@@ -114,39 +114,30 @@ LU <- read_csv("token_test.csv")
 #_____________________________________
 
 df <- read_csv("data_clean.csv")
+```
 
-# creating ADOS2 and other variable columns without NA, but copied from visit 1
 
-# subsetting the 6 comlumns 
-subset <- select(df, Child.ID, Visit, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
-# only including visit 1 in the subset
-subset <- filter(subset, Visit == 1)
-# deleting the visit column
-subset <- select(subset, -Visit)
-# rename clinical measures variables
-subset <- dplyr::rename(subset, ADOS2 = ADOS)
-subset <- dplyr::rename(subset, MullenRaw2 = MullenRaw)
-subset <- dplyr::rename(subset, ExpressiveLangRaw2 = ExpressiveLangRaw)
-subset <- dplyr::rename(subset, Socialization2 = Socialization)
-# merging the subset with df
-df <- merge(df, subset, by = "Child.ID")
+```{r, include = FALSE}
 
-#______________________________________________  
-  
+```
 
+
+```{r, include = FALSE}
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
 # The models: best quad for h1, last one with age instead of VISIT
 #old name: "quadratic"
 quadratic <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
 #old name: "model8"
-model8 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw + (1 | Child.ID), df)
+model8 <- lmer(CHI_MLU ~ Age * I(ADOS1^2) + df$verbalIQ1 + (1 | Child.ID), df)
 
+
+#- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
 MuMIn::r.squaredGLMM(quadratic) #Rsquared: 0.825
 MuMIn::r.squaredGLMM(model8) #Rsquared: 0.846
 ```
 
 
-#- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
+
 ```{r}
 
 # So the average residual (difference between observed and predicted value) is 0.29 from the observed traning data to the model predictions.
@@ -174,16 +165,15 @@ CleanTest_df <- CleanUpData(Demo, LU, Word)
 
 
 # renaming some variable names to fit the clean traning data
-CleanTest_df <- dplyr::rename(CleanTest_df, ADOS2 = Ados1)
+#CleanTest_df <- dplyr::rename(CleanTest_df, ADOS2 = Ados1)
 ```
 
 
-#- test the performance of the models on the test data (Tips: google the functions "predict()")
 
 
 #- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
 
-```
+
 
 [HERE GOES YOUR ANSWER]
 
@@ -206,11 +196,44 @@ In this exercise you have to use cross-validation to calculate the predictive er
 ```{r}
 #- Create the basic model of ChildMLU as a function of Time and Diagnosis (don't forget the random effects!).
 
+bac_midel <- lmer(CHI_MLU ~ Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
+
+
+```
+
 #- Make a cross-validated version of the model. (Tips: google the function "createFolds";  loop through each fold, train a model on the other folds and test it on the fold)
 
+```{r}
+k <-  10
+folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE <- rep(NA, k)
+testRMSE <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(df, !(Child.ID %in% fold))
+  test = subset(df, Child.ID %in% fold)
+  model = lmer(CHI_MLU ~ Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), train)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE[i] <- RMSE(train$types_CHI, fitted(model))
+  testRMSE[i] <- RMSE(test$types_CHI, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE
+testRMSE
+```
+
 #- Report the results and comment on them. 
+```{r}
+
+```
 
 #- Now try to find the best possible predictive model of ChildMLU, that is, the one that produces the best cross-validated results.
+```{r}
+
+```
 
 # Bonus Question 1: What is the effect of changing the number of folds? Can you plot RMSE as a function of number of folds?
 # Bonus Question 2: compare the cross-validated predictive error against the actual predictive error on the test data
