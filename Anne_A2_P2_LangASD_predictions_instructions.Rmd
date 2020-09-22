@@ -46,7 +46,7 @@ How did your models from last time perform? In this exercise you have to compare
 
 
 ```{r}
-pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret)
+pacman::p_load(readr, dplyr, stringr, lmerTest, Metrics, caret, tidyverse,lme4)
 
 df <- read_csv("data_clean.csv")
 df$X1 <- NULL
@@ -165,6 +165,7 @@ mean(df$CHI_MLU, na.rm = T)
 
 #- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
 # loading test datasets
+
 Demo <- read_csv("demo_test.csv")
 LU <- read_csv("LU_test.csv")
 Word <- read_csv("token_test.csv")
