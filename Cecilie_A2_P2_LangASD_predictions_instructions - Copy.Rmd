@@ -46,11 +46,13 @@ How did your models from last time perform? In this exercise you have to compare
 
 
 ```{r, include = FALSE}
-
 pacman::p_load(readr, dplyr, stringr, lmerTest, Metrics, caret, tidyverse,lme4)
 
 ## Clean up function, included to inspire you
+```
 
+
+```{r, include = FALSE}
 #CleanUpData <- function(Demo,LU,Word){
   
   Speech <- merge(LU, Word) %>% 
@@ -97,7 +99,10 @@ pacman::p_load(readr, dplyr, stringr, lmerTest, Metrics, caret, tidyverse,lme4)
 
   return(Data)
 }
+```
 
+
+```{r, include = FALSE}
 # Load training Data
 df <- read_csv("data_clean.csv")
 Word <- read_csv("token_test.csv")
@@ -106,7 +111,7 @@ LU <- read_csv("token_test.csv")
 
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
 #"fixing" the clean_data so we have an coloum with visit^2, and an ados were 
-df$Visit2 <- df$Visit^2
+
 #_____________________________________
 new_df <- read_csv("data_clean.csv")
 new_df$X1 <- NULL
@@ -132,36 +137,40 @@ subset <- dplyr::rename(subset, Socialization2 = Socialization)
 
 
 # merging the subset_2f with merged_df
-new_df <- merge(new_df, subset, by = "Child.ID")
+df <- merge(new_df, subset, by = "Child.ID")
   
-new_df$Visit2 <- df$Visit^2
+
 #______________________________________________  
   
-  
-  
-  
-  
+
   
 #old name: "quadratic"
-chi_mlu1 <- lmer(CHI_MLU ~ Visit + Visit2 + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), new_df)
+chi_mlu1 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
 
 #old name: "model8"
-chi_mlu2 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw + (1 | Child.ID), new_df)
+chi_mlu2 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw + (1 | Child.ID), df)
+
+library(MuMIn)
+
+r.squaredGLMM(chi_mlu1) #Rsquared: 0.825
+r.squaredGLMM(chi_mlu2) #Rsquared: 0.846
 
 
 
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
+sub <- df%>%
+  dplyr::select(c(CHI_MLU, Visit, Diagnosis, Child.ID, ADOS2, ExpressiveLangRaw, Age))%>%
+  na.omit()
 
-k <-  6
-folds <- createFolds(unique(new_df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+folds <- createFolds(unique(sub$Child.ID), k = 6, list = TRUE, returnTrain = FALSE)
 trainRMSE <- rep(NA, k)
 testRMSE <- rep(NA, k)
 i <- 1
 
 for (fold in folds){
-  train = subset(new_df, !(Child.ID %in% fold))
-  test = subset(new_df, Child.ID %in% fold)
-  model = chi_mlu1 # or lmer(CHI_MLU ~ Visit + Visit2 + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), train)
+  train = subset(sub, !(Child.ID %in% fold))
+  test = subset(sub, Child.ID %in% fold)
+  model = lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw + (1 | Child.ID), train)
   test$prediction <- predict(model, test, allow.new.levels = TRUE)
   train$prediction <- fitted(model)
   trainRMSE[i] <- RMSE(train$types_CHI, fitted(model))
