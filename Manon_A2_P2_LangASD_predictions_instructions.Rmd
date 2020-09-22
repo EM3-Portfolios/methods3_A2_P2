@@ -45,7 +45,7 @@ How did your models from last time perform? In this exercise you have to compare
 - optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
 
 
-
+```{r the clean up function that was included}
 ## Clean up function, included to inspire you
 
 CleanUpData <- function(Demo,LU,Word){
@@ -94,13 +94,15 @@ CleanUpData <- function(Demo,LU,Word){
 
   return(Data)
 }
+```
 
 
 
 
-```{r setting up data and dataframes and stuff}
 
-pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret, lme4)
+```{r setting up data and columns}
+
+pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret, lme4, caret)
 
 # Load training Data
 df <- read_csv("data_clean.csv")
@@ -124,30 +126,64 @@ df <- merge(df, subset, by = "Child.ID")
 ```
 
 
-```{r load models and stuff, include = FALSE}
+```{r load models and view r.squared}
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
 # The models: best quad for h1, last one with age instead of VISIT
 quadratic <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
-model8 <- lmer(CHI_MLU ~ Age * ADOS2 + ExpressiveLangRaw2 + (1 | Child.ID), df)
+model8 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw + (1 | Child.ID), df)
 
 MuMIn::r.squaredGLMM(quadratic)
 MuMIn::r.squaredGLMM(model8)
+```
 
 
-
+```{r evaluating performance of model using RMSE() function}
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
 
 
+# https://www.rdocumentation.org/packages/Metrics/versions/0.1.4/topics/rmse
+# I think I got model evaluation compared to the training data to work :-)
+# So the average residual (difference between observed and predicted value) is 0.29 from the observed traning data to the model predictions.
+predictions_a2 <- predict(model8, df, allow.new.level = TRUE)
+RMSE(df$CHI_MLU, predictions_a2, na.rm = TRUE)
 
-#- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
-# Test data
-
-#- test the performance of the models on the test data (Tips: google the functions "predict()")
-
-
-#- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
-
+# For context, the mean CHI_MLU in the training data is 1.99 (the RMSE is in the same original measurement unit)
+mean(df$CHI_MLU, na.rm = T)
 ```
+
+
+```{r}
+#- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
+# loading test datasets
+Demo <- read_csv("demo_test.csv")
+LU <- read_csv("LU_test.csv")
+Word <- read_csv("token_test.csv")
+#trying to use the CleanUpData() function on them
+CleanTest_df <- CleanUpData(Demo, LU, Word)
+# yay this all works :-)
+
+
+# renaming some variable names to fit the clean traning data
+CleanTest_df <- dplyr::rename(CleanTest_df, ADOS2 = Ados1)
+```
+
+
+```{r}
+#- test the performance of the models on the test data (Tips: google the functions "predict()")
+predictions_againstTrain <- predict(model8, CleanTest_df, allow.new.levels = TRUE)
+RMSE(CleanTest_df$CHI_MLU, predictions_againstTrain, na.rm = TRUE)
+
+# Here, the average residual AKA the root mean squared error is 0.41 from the observed TEST data to the model predictions
+# For context, the mean observed CHI_MLU in the test data is 2.1 (the RMSE is in the same original measurement unit)
+mean(CleanTest_df$CHI_MLU, na.rm = T)
+```
+
+
+```{r}
+#- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
+```
+
+
 
 [HERE GOES YOUR ANSWER]
 
