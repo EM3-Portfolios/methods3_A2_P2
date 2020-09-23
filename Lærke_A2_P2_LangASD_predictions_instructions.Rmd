@@ -316,16 +316,15 @@ trainRMSE_m
 testRMSE_m
 
 crossValidation <- data.frame(trainRMSE_basic, testRMSE_basic, trainRMSE_m, testRMSE_m)
-crossValidation$basic_diff <- abs(crossValidation$trainRMSE_basic - crossValidation$testRMSE_basic)
-crossValidation$m_diff <- abs(crossValidation$trainRMSE_m - crossValidation$testRMSE_m)
 
-mean(crossValidation$basic_diff)
-mean(crossValidation$m_diff)
+mean_train <- c(mean(crossValidation$trainRMSE_basic), mean(crossValidation$trainRMSE_m))
 
-mean(crossValidation$trainRMSE_basic)
-mean(crossValidation$testRMSE_basic)
-mean(crossValidation$trainRMSE_m)
-mean(crossValidation$testRMSE_m)
+mean_test <- c(mean(crossValidation$testRMSE_basic), mean(crossValidation$testRMSE_m))
+
+models <- c("basic", "m")
+
+crossValidationMean <- data.frame(models, mean_train, mean_test) # m wins
+
 ```
 
 
@@ -340,10 +339,10 @@ mean(crossValidation$testRMSE_m)
 
 
 # Models to test in the first round (with varying random slopes):
-# m1 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 + Diagnosis + MOT_MLU | Child.ID), train)
-# m2 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 | Child.ID), train)
-# m3 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 +  MOT_MLU | Child.ID), train)
-# m4 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 + Diagnosis | Child.ID), train)
+# m <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 + Diagnosis + MOT_MLU | Child.ID), train)
+# m1 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 | Child.ID), train)
+# m2 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 +  MOT_MLU | Child.ID), train)
+# m3 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 + Diagnosis | Child.ID), train)
 
 
 ######### m1 ##########
@@ -357,7 +356,7 @@ i <- 1
 for (fold in folds){
   train = subset(df, !(Child.ID %in% fold))
   test = subset(df, Child.ID %in% fold)
-  model = lmer(CHI_MLU ~ I(Visit^2) * Diagnosis + verbalIQ1 + (1 + Visit | Child.ID), train)
+  model = m1 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 | Child.ID), train)
   test$prediction <- predict(model, test, allow.new.levels = TRUE)
   train$prediction <- fitted(model)
   trainRMSE_m1[i] <- RMSE(train$CHI_MLU, fitted(model))
@@ -379,7 +378,7 @@ i <- 1
 for (fold in folds){
   train = subset(df, !(Child.ID %in% fold))
   test = subset(df, Child.ID %in% fold)
-  model = lmer(CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1 + Socialization1 + (1 + Age | Child.ID), train)
+  model = lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 +  MOT_MLU | Child.ID), train)
   test$prediction <- predict(model, test, allow.new.levels = TRUE)
   train$prediction <- fitted(model)
   trainRMSE_m2[i] <- RMSE(train$CHI_MLU, fitted(model))
@@ -401,7 +400,7 @@ i <- 1
 for (fold in folds){
   train = subset(df, !(Child.ID %in% fold))
   test = subset(df, Child.ID %in% fold)
-  model = lmer(CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1 + Socialization1 + (1 + Age + MOT_MLU | Child.ID), train)
+  model = lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 + Diagnosis | Child.ID), train)
   test$prediction <- predict(model, test, allow.new.levels = TRUE)
   train$prediction <- fitted(model)
   trainRMSE_m3[i] <- RMSE(train$CHI_MLU, fitted(model))
@@ -412,7 +411,20 @@ for (fold in folds){
 trainRMSE_m3
 testRMSE_m3
 
-######### m4 ##########
+
+
+crossValidation1 <- data.frame(trainRMSE_m, testRMSE_m, trainRMSE_m1, testRMSE_m1, trainRMSE_m2, testRMSE_m2, trainRMSE_m3, testRMSE_m3)
+
+
+mean_train <- c(mean(crossValidation1$trainRMSE_m), mean(crossValidation1$trainRMSE_m1), mean(crossValidation1$trainRMSE_m2), mean(crossValidation1$trainRMSE_m3))
+
+mean_test <- c(mean(crossValidation1$testRMSE_m), mean(crossValidation1$testRMSE_m1), mean(crossValidation1$testRMSE_m2), mean(crossValidation1$testRMSE_m3))
+
+models <- c("m", "m1", "m2", "m3")
+
+crossValidation1Mean <- data.frame(models, mean_train, mean_test) # m still wins
+
+##### m4
 
 k <-  10
 folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
@@ -423,7 +435,7 @@ i <- 1
 for (fold in folds){
   train = subset(df, !(Child.ID %in% fold))
   test = subset(df, Child.ID %in% fold)
-  model = lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), train)
+  model = lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis | Child.ID), train)
   test$prediction <- predict(model, test, allow.new.levels = TRUE)
   train$prediction <- fitted(model)
   trainRMSE_m4[i] <- RMSE(train$CHI_MLU, fitted(model))
@@ -431,10 +443,8 @@ for (fold in folds){
   i <- i + 1
 }
 
-trainRMSE_m4
-testRMSE_m4
 
-######### m5 ##########
+##### m5
 
 k <-  10
 folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
@@ -445,7 +455,7 @@ i <- 1
 for (fold in folds){
   train = subset(df, !(Child.ID %in% fold))
   test = subset(df, Child.ID %in% fold)
-  model = lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 | Child.ID), train)
+  model = lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + nonVerbalIQ1 + (1 + Diagnosis | Child.ID), train)
   test$prediction <- predict(model, test, allow.new.levels = TRUE)
   train$prediction <- fitted(model)
   trainRMSE_m5[i] <- RMSE(train$CHI_MLU, fitted(model))
@@ -453,10 +463,7 @@ for (fold in folds){
   i <- i + 1
 }
 
-trainRMSE_m5
-testRMSE_m5
-
-######### m6 ##########
+##### m6 
 
 k <-  10
 folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
@@ -467,7 +474,7 @@ i <- 1
 for (fold in folds){
   train = subset(df, !(Child.ID %in% fold))
   test = subset(df, Child.ID %in% fold)
-  model = lmer(CHI_MLU ~ Age * I(ADOS1^2) + (1 | Child.ID), train)
+  model = lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + Socialization1 + (1 + Diagnosis | Child.ID), train)
   test$prediction <- predict(model, test, allow.new.levels = TRUE)
   train$prediction <- fitted(model)
   trainRMSE_m6[i] <- RMSE(train$CHI_MLU, fitted(model))
@@ -475,35 +482,20 @@ for (fold in folds){
   i <- i + 1
 }
 
-trainRMSE_m6
-testRMSE_m6
+crossValidation2 <- data.frame(trainRMSE_m3, testRMSE_m3, trainRMSE_m4, testRMSE_m4, trainRMSE_m5, testRMSE_m5, trainRMSE_m6, testRMSE_m6)
 
-crossValidation2 <- data.frame(trainRMSE_basic, testRMSE_basic, trainRMSE_m8, testRMSE_m8, trainRMSE_m1, testRMSE_m1, trainRMSE_m2, testRMSE_m2, trainRMSE_m3, testRMSE_m3, trainRMSE_m4, testRMSE_m4, trainRMSE_m5, testRMSE_m5, trainRMSE_m6, testRMSE_m6)
 
-mean(crossValidation2$trainRMSE_basic)
-mean(crossValidation2$testRMSE_basic)
-mean(crossValidation2$trainRMSE_m8)
-mean(crossValidation2$testRMSE_m8)
-mean(crossValidation2$trainRMSE_m1)
-mean(crossValidation2$testRMSE_m1)
-mean(crossValidation2$trainRMSE_m2)
-mean(crossValidation2$testRMSE_m2)
-mean(crossValidation2$trainRMSE_m3)
-mean(crossValidation2$testRMSE_m3)
-mean(crossValidation2$trainRMSE_m4)
-mean(crossValidation2$testRMSE_m4)
-mean(crossValidation2$trainRMSE_m5)
-mean(crossValidation2$testRMSE_m5)
-mean(crossValidation2$trainRMSE_m6)
-mean(crossValidation2$testRMSE_m6)
+mean_train <- c(mean(crossValidation2$trainRMSE_m3), mean(crossValidation2$trainRMSE_m4), mean(crossValidation2$trainRMSE_m5), mean(crossValidation2$trainRMSE_m6))
 
-mean_train <- c(mean(crossValidation2$trainRMSE_basic), mean(crossValidation2$trainRMSE_m8), mean(crossValidation2$trainRMSE_m1), mean(crossValidation2$trainRMSE_m2), mean(crossValidation2$trainRMSE_m3), mean(crossValidation2$trainRMSE_m4), mean(crossValidation2$trainRMSE_m5), mean(crossValidation2$trainRMSE_m6))
+mean_test <- c(mean(crossValidation2$trainRMSE_m3), mean(crossValidation2$testRMSE_m4), mean(crossValidation2$testRMSE_m5), mean(crossValidation2$testRMSE_m6))
 
-mean_test <- c(mean(crossValidation2$testRMSE_basic), mean(crossValidation2$testRMSE_m8), mean(crossValidation2$testRMSE_m1), mean(crossValidation2$testRMSE_m2), mean(crossValidation2$testRMSE_m3), mean(crossValidation2$testRMSE_m4), mean(crossValidation2$testRMSE_m5), mean(crossValidation2$testRMSE_m6))
+models <- c("m3", "m4", "m5", "m6")
 
-models <- c("basic", "m8", "m1", "m2", "m3", "m4", "m5", "m6")
+crossValidation2Mean <- data.frame(models, mean_train, mean_test) # m still wins
 
-crossValidation2Mean <- data.frame(models, mean_train, mean_test)
+
+
+
 
 # Bonus Question 1: What is the effect of changing the number of folds? Can you plot RMSE as a function of number of folds?
 # Bonus Question 2: compare the cross-validated predictive error against the actual predictive error on the test data
@@ -542,14 +534,15 @@ mean(bernie$CHI_MLU) - mean(MLU_mean_perVisit$CHI_MLU)
 - how does the child fare compared to the model predictions at Visit 6? Is the child below or above expectations? (tip: use the predict() function on Bernie's data only and compare the prediction with the actual performance of the child)
 
 ```{r}
-m1 <- lmer(CHI_MLU ~ I(Visit^2) * Diagnosis + verbalIQ1 + (1 + Visit | Child.ID), train)
+# Our model (m3):
+m3 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 + Diagnosis | Child.ID), df)
 
 # Making a list of the model predictions:
 predict_bernie <- predict(m1, bernie, allow.new.level = TRUE)
 
 # Comparing model predictions to actual observations:
 RMSE(bernie$CHI_MLU, predict_bernie, na.rm = TRUE)
-# The average residual (difference between observed and predicted value) is 0.48 from the observed traning data to the model predictions.
+# The average residual (difference between observed and predicted value) is 0.46 from the observed traning data to the model predictions.
 
 # For context, the mean CHI_MLU for TD children in the training data is 2.31 (the RMSE is in the same original measurement unit)
 mean(td$CHI_MLU, na.rm = T)
