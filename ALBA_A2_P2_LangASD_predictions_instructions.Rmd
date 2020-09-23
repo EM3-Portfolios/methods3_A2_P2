@@ -230,7 +230,68 @@ You want to evaluate:
 - how does the child fare compared to the model predictions at Visit 6? Is the child below or above expectations? (tip: use the predict() function on Bernie's data only and compare the prediction with the actual performance of the child)
 
 ```{r}
+#Extracting bernie the dude from the CleanTest df
 
+Bernie <- subset(CleanTest_df, Child.ID== 2)
+
+#Creating a subset with only TD children
+
+CHI_MLU_TD <- subset(df, Diagnosis== "TD")
+
+#Creating subsets for CHI_MLU TD
+
+CHI_MLU_TD_1 <- subset(CHI_MLU_TD, Visit==1)
+CHI_MLU_TD_2 <- subset(CHI_MLU_TD, Visit==2)
+CHI_MLU_TD_3 <- subset(CHI_MLU_TD, Visit==3)
+CHI_MLU_TD_4 <- subset(CHI_MLU_TD, Visit==4)
+CHI_MLU_TD_5 <- subset(CHI_MLU_TD, Visit==5)
+CHI_MLU_TD_6 <- subset(CHI_MLU_TD, Visit==6)
+
+#Calculating means for each visit for CHI_MLU TD children 
+
+mean1 <- mean(CHI_MLU_TD_1$CHI_MLU)
+mean2 <- mean(CHI_MLU_TD_2$CHI_MLU)
+mean3 <- mean(CHI_MLU_TD_3$CHI_MLU)
+mean4 <- mean(CHI_MLU_TD_4$CHI_MLU)
+mean5 <- mean(CHI_MLU_TD_5$CHI_MLU)
+mean6 <- mean(CHI_MLU_TD_6$CHI_MLU)
+
+#printing TD CHI_MLU average for each visit
+
+print(mean1)
+print(mean2)
+print(mean3)
+print(mean4)
+print(mean5)
+print(mean6)
+
+#Creating a subset for each visit for Bernie's dataframe
+
+bernie_V1 <- subset(Bernie, Visit == 1)
+bernie_V2 <- subset(Bernie, Visit == 2)
+bernie_V3 <- subset(Bernie, Visit == 3)
+bernie_V4 <- subset(Bernie, Visit == 4)
+bernie_V5 <- subset(Bernie, Visit == 5)
+bernie_V6 <- subset(Bernie, Visit == 6)
+
+
+#Calculating the difference between Bernie's values for CHI_MLU and TD's means
+
+difference1 <- (bernie_V1$CHI_MLU-mean1)
+difference2 <- (bernie_V2$CHI_MLU-mean2)
+difference3 <- (bernie_V2$CHI_MLU-mean2)
+difference4 <- (bernie_V2$CHI_MLU-mean2)
+difference5 <- (bernie_V2$CHI_MLU-mean2)
+difference6 <- (bernie_V2$CHI_MLU-mean2)
+
+
+#Making a dataframe with the difference
+mdl_com_df <- tibble( Model = c("quadratic", "model8"),
+                          AIC=, 
+                          AIC_Weight = round(Weights(m_aic), 3),
+                          BIC=m_bic$BIC,
+                          BIC_Weight = round(Weights(m_bic),3)
+                          )
 ```
 
 
