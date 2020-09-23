@@ -171,8 +171,8 @@ CleanTest_df <- dplyr::rename(CleanTest_df, ADOS1 = Ados1)
 predictions_againstTrain <- predict(model, CleanTest_df, allow.new.levels = TRUE)
 RMSE(CleanTest_df$CHI_MLU, predictions_againstTrain, na.rm = TRUE)
 
-# Here, the average residual AKA the root mean squared error is 0.41 from the observed TEST data to the model predictions
-# For context, the mean observed CHI_MLU in the test data is 2.1 (the RMSE is in the same original measurement unit)
+# Here, the average residual AKA the root mean squared error is 0.61 from the observed TEST data to the model predictions
+# For context, the mean observed CHI_MLU in the test data is 2.10 (the RMSE is in the same original measurement unit)
 mean(CleanTest_df$CHI_MLU, na.rm = T)
 ```
 
