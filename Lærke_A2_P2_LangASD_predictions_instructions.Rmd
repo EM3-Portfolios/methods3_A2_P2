@@ -111,34 +111,42 @@ CleanUpData <- function(Demo,LU,Word){
 
 
 ```{r setting up data and columns}
-
 # Load training Data
 df <- read_csv("data_clean.csv")
+```
 
+
+
+```{r setting up data and columns}
 # creating ADOS2 and other variable columns without NA, but copied from visit 1
 
 # subsetting the 6 comlumns 
-subset <- dplyr::select(df, Visit, Child.ID, Visit, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
+#subset <- dplyr::select(df, Visit, Child.ID, Visit, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
 # only including visit 1 in the subset
-subset <- filter(subset, Visit == 1)
+#subset <- filter(subset, Visit == 1)
 # deleting the visit column
-subset <- dplyr::select(subset, -Visit)
+#subset <- dplyr::select(subset, -Visit)
 # rename clinical measures variables
-subset <- rename(subset, ADOS2 = ADOS)
-subset <- rename(subset, MullenRaw2 = MullenRaw)
-subset <- rename(subset, ExpressiveLangRaw2 = ExpressiveLangRaw)
-subset <- rename(subset, Socialization2 = Socialization)
+#subset <- rename(subset, ADOS2 = ADOS)
+#subset <- rename(subset, MullenRaw2 = MullenRaw)
+#subset <- rename(subset, ExpressiveLangRaw2 = ExpressiveLangRaw)
+#subset <- rename(subset, Socialization2 = Socialization)
 # merging the subset with df
-df <- merge(df, subset, by = "Child.ID")
+#df <- merge(df, subset, by = "Child.ID")
 
+
+
+# MullenRaw = Non-verbal IQ
+# ExpressiveLangRaw = Verbal IQ
 ```
+
 
 
 ```{r load models and view r.squared}
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
 # The models: best quad for h1, last one with age instead of VISIT
 quadratic <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
-model8 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw + (1 | Child.ID), df)
+model8 <- lmer(CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1 + (1 | Child.ID), df)
 
 # Comparing the R^2 values for the two models:
 r.squaredGLMM(quadratic)
@@ -207,11 +215,8 @@ CleanTest_df <- CleanUpData(Demo, LU, Word)
 
 
 # renaming some variable names to fit the clean traning data
-CleanTest_df <- rename(CleanTest_df, ADOS2 = Ados1)
+CleanTest_df <- rename(CleanTest_df, ADOS1 = Ados1)
 
-
-
-# NB: this dataset (CleanTest_df) is really, really small
 ```
 
 
@@ -265,6 +270,20 @@ In this exercise you have to use cross-validation to calculate the predictive er
 - (Tips): google the function "createFolds";  loop through each fold, train both models on the other folds and test them on the fold)
 
 ```{r}
+completeFun <- function(data, desiredCols) {
+  completeVec <- complete.cases(data[, desiredCols])
+  return(data[completeVec, ])
+}
+
+df <- completeFun(df, "CHI_MLU")
+df <- completeFun(df, "Age")
+
+df <- completeFun(df, "verbalIQ1")
+df <- completeFun(df, "nonVerbalIQ1")
+df <- completeFun(df, "Socialization1")
+
+
+
 # Basic model:
 #basic <- lmer(CHI_MLU ~ Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
 
@@ -282,8 +301,8 @@ for (fold in folds){
   model = lmer(CHI_MLU ~ Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), train)
   test$prediction <- predict(model, test, allow.new.levels = TRUE)
   train$prediction <- fitted(model)
-  trainRMSE_basic[i] <- RMSE(train$types_CHI, fitted(model))
-  testRMSE_basic[i] <- RMSE(test$types_CHI, test$prediction)
+  trainRMSE_basic[i] <- RMSE(train$CHI_MLU, fitted(model))
+  testRMSE_basic[i] <- RMSE(test$CHI_MLU, test$prediction)
   i <- i + 1
 }
 
@@ -300,11 +319,11 @@ i <- 1
 for (fold in folds){
   train = subset(df, !(Child.ID %in% fold))
   test = subset(df, Child.ID %in% fold)
-  model = model8 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw2 + (1 | Child.ID), train)
+  model = lmer(CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1 + (1 | Child.ID), train)
   test$prediction <- predict(model, test, allow.new.levels = TRUE)
   train$prediction <- fitted(model)
-  trainRMSE_m8[i] <- RMSE(train$types_CHI, fitted(model))
-  testRMSE_m8[i] <- RMSE(test$types_CHI, test$prediction)
+  trainRMSE_m8[i] <- RMSE(train$CHI_MLU, fitted(model))
+  testRMSE_m8[i] <- RMSE(test$CHI_MLU, test$prediction)
   i <- i + 1
 }
 
@@ -317,6 +336,11 @@ crossValidation$m8_diff <- abs(crossValidation$trainRMSE_m8 - crossValidation$te
 
 mean(crossValidation$basic_diff)
 mean(crossValidation$m8_diff)
+
+mean(crossValidation$trainRMSE_basic)
+mean(crossValidation$testRMSE_basic)
+mean(crossValidation$trainRMSE_m8)
+mean(crossValidation$testRMSE_m8)
 ```
 
 
@@ -335,6 +359,166 @@ basic <- lmer(CHI_MLU ~ Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), 
 #- Report the results and comment on them. 
 
 #- Now try to find the best possible predictive model of ChildMLU, that is, the one that produces the best cross-validated results.
+
+
+######### m1 ##########
+
+k <-  10
+folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE_m1 <- rep(NA, k)
+testRMSE_m1 <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(df, !(Child.ID %in% fold))
+  test = subset(df, Child.ID %in% fold)
+  model = lmer(CHI_MLU ~ I(Visit^2) * Diagnosis + verbalIQ1 + (1 + Visit | Child.ID), train)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE_m1[i] <- RMSE(train$CHI_MLU, fitted(model))
+  testRMSE_m1[i] <- RMSE(test$CHI_MLU, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE_m1
+testRMSE_m1
+
+######### m2 ##########
+
+k <-  10
+folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE_m2 <- rep(NA, k)
+testRMSE_m2 <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(df, !(Child.ID %in% fold))
+  test = subset(df, Child.ID %in% fold)
+  model = lmer(CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1 + Socialization1 + (1 + Age | Child.ID), train)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE_m2[i] <- RMSE(train$CHI_MLU, fitted(model))
+  testRMSE_m2[i] <- RMSE(test$CHI_MLU, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE_m2
+testRMSE_m2
+
+######### m3 ##########
+
+k <-  10
+folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE_m3 <- rep(NA, k)
+testRMSE_m3 <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(df, !(Child.ID %in% fold))
+  test = subset(df, Child.ID %in% fold)
+  model = lmer(CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1 + Socialization1 + (1 + Age + MOT_MLU | Child.ID), train)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE_m3[i] <- RMSE(train$CHI_MLU, fitted(model))
+  testRMSE_m3[i] <- RMSE(test$CHI_MLU, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE_m3
+testRMSE_m3
+
+######### m4 ##########
+
+k <-  10
+folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE_m4 <- rep(NA, k)
+testRMSE_m4 <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(df, !(Child.ID %in% fold))
+  test = subset(df, Child.ID %in% fold)
+  model = lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), train)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE_m4[i] <- RMSE(train$CHI_MLU, fitted(model))
+  testRMSE_m4[i] <- RMSE(test$CHI_MLU, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE_m4
+testRMSE_m4
+
+######### m5 ##########
+
+k <-  10
+folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE_m5 <- rep(NA, k)
+testRMSE_m5 <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(df, !(Child.ID %in% fold))
+  test = subset(df, Child.ID %in% fold)
+  model = lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 | Child.ID), train)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE_m5[i] <- RMSE(train$CHI_MLU, fitted(model))
+  testRMSE_m5[i] <- RMSE(test$CHI_MLU, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE_m5
+testRMSE_m5
+
+######### m6 ##########
+
+k <-  10
+folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE_m6 <- rep(NA, k)
+testRMSE_m6 <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(df, !(Child.ID %in% fold))
+  test = subset(df, Child.ID %in% fold)
+  model = lmer(CHI_MLU ~ Age * I(ADOS1^2) + (1 | Child.ID), train)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE_m6[i] <- RMSE(train$CHI_MLU, fitted(model))
+  testRMSE_m6[i] <- RMSE(test$CHI_MLU, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE_m6
+testRMSE_m6
+
+crossValidation2 <- data.frame(trainRMSE_basic, testRMSE_basic, trainRMSE_m8, testRMSE_m8, trainRMSE_m1, testRMSE_m1, trainRMSE_m2, testRMSE_m2, trainRMSE_m3, testRMSE_m3, trainRMSE_m4, testRMSE_m4, trainRMSE_m5, testRMSE_m5, trainRMSE_m6, testRMSE_m6)
+
+mean(crossValidation2$trainRMSE_basic)
+mean(crossValidation2$testRMSE_basic)
+mean(crossValidation2$trainRMSE_m8)
+mean(crossValidation2$testRMSE_m8)
+mean(crossValidation2$trainRMSE_m1)
+mean(crossValidation2$testRMSE_m1)
+mean(crossValidation2$trainRMSE_m2)
+mean(crossValidation2$testRMSE_m2)
+mean(crossValidation2$trainRMSE_m3)
+mean(crossValidation2$testRMSE_m3)
+mean(crossValidation2$trainRMSE_m4)
+mean(crossValidation2$testRMSE_m4)
+mean(crossValidation2$trainRMSE_m5)
+mean(crossValidation2$testRMSE_m5)
+mean(crossValidation2$trainRMSE_m6)
+mean(crossValidation2$testRMSE_m6)
+
+mean_train <- c(mean(crossValidation2$trainRMSE_basic), mean(crossValidation2$trainRMSE_m8), mean(crossValidation2$trainRMSE_m1), mean(crossValidation2$trainRMSE_m2), mean(crossValidation2$trainRMSE_m3), mean(crossValidation2$trainRMSE_m4), mean(crossValidation2$trainRMSE_m5), mean(crossValidation2$trainRMSE_m6))
+
+mean_test <- c(mean(crossValidation2$testRMSE_basic), mean(crossValidation2$testRMSE_m8), mean(crossValidation2$testRMSE_m1), mean(crossValidation2$testRMSE_m2), mean(crossValidation2$testRMSE_m3), mean(crossValidation2$testRMSE_m4), mean(crossValidation2$testRMSE_m5), mean(crossValidation2$testRMSE_m6))
+
+models <- c("basic", "m8", "m1", "m2", "m3", "m4", "m5", "m6")
+
+crossValidation2Mean <- data.frame(models, mean_train, mean_test)
 
 # Bonus Question 1: What is the effect of changing the number of folds? Can you plot RMSE as a function of number of folds?
 # Bonus Question 2: compare the cross-validated predictive error against the actual predictive error on the test data
@@ -355,6 +539,16 @@ You want to evaluate:
 - how does the child fare compared to the model predictions at Visit 6? Is the child below or above expectations? (tip: use the predict() function on Bernie's data only and compare the prediction with the actual performance of the child)
 
 ```{r}
+# Making a df with only data for Bernie
+bernie <- filter(CleanTest_df, Child.ID == "2")
+
+# Making a df with only data for TD children
+td <- filter(df, Diagnosis == "TD")
+
+# Finding the mean CHI_MLU of the TD children for each visit
+MLU_mean_perVisit <- data.frame(aggregate(td[, 13], list(td$Visit), mean)) #"Group.1" = visit and "x" = CHI_MLU mean
+MLU_mean_perVisit <- rename(MLU_mean_perVisit, Visit = Group.1)
+
 
 ```
 
