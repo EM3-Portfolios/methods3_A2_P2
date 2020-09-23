@@ -549,7 +549,8 @@ td <- filter(df, Diagnosis == "TD")
 MLU_mean_perVisit <- data.frame(aggregate(td[, 13], list(td$Visit), mean)) #"Group.1" = visit and "x" = CHI_MLU mean
 MLU_mean_perVisit <- rename(MLU_mean_perVisit, Visit = Group.1)
 
-
+# Adding a column to the Bernie data frame with the 
+bernie$diff <- bernie$CHI_MLU - MLU_mean_perVisit$CHI_MLU
 ```
 
 
