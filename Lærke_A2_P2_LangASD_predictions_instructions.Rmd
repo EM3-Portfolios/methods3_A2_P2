@@ -536,8 +536,6 @@ You want to evaluate:
 
 - how does the child fare in ChildMLU compared to the average TD child at each visit? Define the distance in terms of absolute difference between this Child and the average TD.
 
-- how does the child fare compared to the model predictions at Visit 6? Is the child below or above expectations? (tip: use the predict() function on Bernie's data only and compare the prediction with the actual performance of the child)
-
 ```{r}
 # Making a df with only data for Bernie
 bernie <- filter(CleanTest_df, Child.ID == "2")
@@ -551,6 +549,27 @@ MLU_mean_perVisit <- rename(MLU_mean_perVisit, Visit = Group.1)
 
 # Adding a column to the Bernie data frame with the 
 bernie$diff <- bernie$CHI_MLU - MLU_mean_perVisit$CHI_MLU
+
+# Difference across visits:
+mean(bernie$CHI_MLU) - mean(MLU_mean_perVisit$CHI_MLU)
+```
+
+- how does the child fare compared to the model predictions at Visit 6? Is the child below or above expectations? (tip: use the predict() function on Bernie's data only and compare the prediction with the actual performance of the child)
+
+```{r}
+m1 <- lmer(CHI_MLU ~ I(Visit^2) * Diagnosis + verbalIQ1 + (1 + Visit | Child.ID), train)
+
+# Making a list of the model predictions:
+predict_bernie <- predict(m1, bernie, allow.new.level = TRUE)
+
+# Comparing model predictions to actual observations:
+RMSE(bernie$CHI_MLU, predict_bernie, na.rm = TRUE)
+# The average residual (difference between observed and predicted value) is 0.48 from the observed traning data to the model predictions.
+
+# For context, the mean CHI_MLU for TD children in the training data is 2.31 (the RMSE is in the same original measurement unit)
+mean(td$CHI_MLU, na.rm = T)
+
+
 ```
 
 
