@@ -102,35 +102,25 @@ CleanUpData <- function(Demo,LU,Word){
 
 ```{r setting up data and columns}
 
-pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret, lme4, caret)
+pacman::p_load(readr,dplyr,stringr,lmerTest,Metrics,caret,lme4)
 
 # Load training Data
 df <- read_csv("data_clean.csv")
 
-# creating ADOS2 and other variable columns without NA, but copied from visit 1
-
-# subsetting the 6 comlumns 
-subset <- select(df, Child.ID, Visit, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
-# only including visit 1 in the subset
-subset <- filter(subset, Visit == 1)
-# deleting the visit column
-subset <- select(subset, -Visit)
-# rename clinical measures variables
-subset <- dplyr::rename(subset, ADOS2 = ADOS)
-subset <- dplyr::rename(subset, MullenRaw2 = MullenRaw)
-subset <- dplyr::rename(subset, ExpressiveLangRaw2 = ExpressiveLangRaw)
-subset <- dplyr::rename(subset, Socialization2 = Socialization)
-# merging the subset with df
-df <- merge(df, subset, by = "Child.ID")
+# insrtead of ADOS2 etc we will use the ones from the clean_data set that are already copied for Visit 1
+# old ADOS2 is now called ADOS1
+# old ExpressiveLangRaw2 is now called verbalIQ1
+# old MullenRaw2 is now called nonVerbalIQ1
+# old Socialization2 is now called Socialization1
 
 ```
 
 
 ```{r load models and view r.squared}
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
-# The models: best quad for h1, last one with age instead of VISIT
+# The models: best quad for h1, last one with age instead of Visit
 quadratic <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
-model8 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw + (1 | Child.ID), df)
+model8 <- lmer(CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1+ (1 | Child.ID), df)
 
 MuMIn::r.squaredGLMM(quadratic)
 MuMIn::r.squaredGLMM(model8)
@@ -152,7 +142,7 @@ mean(df$CHI_MLU, na.rm = T)
 ```
 
 
-```{r}
+```{r loading the test dataset and cleaning it using CleanUpData() function}
 #- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
 # loading test datasets
 Demo <- read_csv("demo_test.csv")
@@ -164,11 +154,11 @@ CleanTest_df <- CleanUpData(Demo, LU, Word)
 
 
 # renaming some variable names to fit the clean traning data
-CleanTest_df <- dplyr::rename(CleanTest_df, ADOS2 = Ados1)
+CleanTest_df <- dplyr::rename(CleanTest_df, ADOS1 = Ados1)
 ```
 
 
-```{r}
+```{r Testing the performance of the model on the testing data}
 #- test the performance of the models on the test data (Tips: google the functions "predict()")
 predictions_againstTrain <- predict(model8, CleanTest_df, allow.new.levels = TRUE)
 RMSE(CleanTest_df$CHI_MLU, predictions_againstTrain, na.rm = TRUE)
@@ -179,7 +169,7 @@ mean(CleanTest_df$CHI_MLU, na.rm = T)
 ```
 
 
-```{r}
+```{r optional}
 #- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
 # optional1 <- predictInterval(model8, CleanTest_df, allow.new.levels = TRUE)
 # predictInterval() function not found
@@ -204,13 +194,26 @@ In this exercise you have to use cross-validation to calculate the predictive er
 - Bonus Question 1: What is the effect of changing the number of folds? Can you plot RMSE as a function of number of folds?
 - Bonus Question 2: compare the cross-validated predictive error against the actual predictive error on the test data
 
+
 ```{r}
 #- Create the basic model of ChildMLU as a function of Time and Diagnosis (don't forget the random effects!).
 ```
 
-
-
 ```{r K-fold cross-validattion of models, staring with out "chosen one".}
+# before we do this we need to remove the rows where some specific variables (CHI_MLU, others) are not available, in order for the cross-validation loop to work.
+completeFun <- function(data, desiredCols) {
+  completeVec <- complete.cases(data[, desiredCols])
+  return(data[completeVec, ])
+}
+df <- completeFun(df, "CHI_MLU")
+df <- completeFun(df, "Age")
+df <- completeFun(df, "verbalIQ1")
+df <- completeFun(df, "nonVerbalIQ1")
+df <- completeFun(df, "Socialization1")
+df <- completeFun(df, "ADOS1")
+
+
+
 #- Make a cross-validated version of the model. (Tips: google the function "createFolds";  loop through each fold, train a model on the other folds and test it on the fold)
 k <-  10
 folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
@@ -219,13 +222,13 @@ testRMSE_m8 <- rep(NA, k)
 i <- 1
 
 for (fold in folds){
-  train = subset(df, !(Child.ID %in% fold))
-  test = subset(df, Child.ID %in% fold)
-  model = model8 <- lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw2 + (1 | Child.ID), train)
+  train <-subset(df, !(Child.ID %in% fold))
+  test <- subset(df, Child.ID %in% fold)
+  model <- lmer(CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1 + (1 | Child.ID), train)
   test$prediction <- predict(model, test, allow.new.levels = TRUE)
   train$prediction <- fitted(model)
-  trainRMSE_m8[i] <- RMSE(train$types_CHI, fitted(model))
-  testRMSE_m8[i] <- RMSE(test$types_CHI, test$prediction)
+  trainRMSE_m8[i] <- RMSE(train$CHI_MLU, fitted(model))
+  testRMSE_m8[i] <- RMSE(test$CHI_MLU, test$prediction)
   i <- i + 1
 }
 
@@ -236,18 +239,26 @@ crossValidation <- data.frame(trainRMSE_m8, testRMSE_m8)
 crossValidation$m8_diff <- abs(crossValidation$trainRMSE_m8 - crossValidation$testRMSE_m8)
 mean(crossValidation$m8_diff)
 
-```
 
+# model8 is more generalizable than the basic model if the difference between train and test is smaller for model 8 than the basic.?
+```
 
 ```{r}
+#- Report the results and comment on them.
 
-#- Report the results and comment on them. 
-
-#- Now try to find the best possible predictive model of ChildMLU, that is, the one that produces the best cross-validated results.
-
-# Bonus Question 1: What is the effect of changing the number of folds? Can you plot RMSE as a function of number of folds?
-# Bonus Question 2: compare the cross-validated predictive error against the actual predictive error on the test data
 ```
+
+```{r}
+#- Now try to find the best possible predictive model of ChildMLU, that is, the one that produces the best cross-validated results.
+```
+
+```{r Bonus questions}
+# Bonus Question 1: What is the effect of changing the number of folds? Can you plot RMSE as a function of number of folds?
+- 
+# Bonus Question 2: compare the cross-validated predictive error against the actual predictive error on the test data
+  
+```
+
 
 [HERE GOES YOUR ANSWER]
 
@@ -263,11 +274,23 @@ You want to evaluate:
 
 - how does the child fare compared to the model predictions at Visit 6? Is the child below or above expectations? (tip: use the predict() function on Bernie's data only and compare the prediction with the actual performance of the child)
 
-```{r}
-# loading test data
-Demo <- read_csv("demo_test.csv")
-LU <- read_csv("LU_test.csv")
-Word <- read_csv("token_test.csv")
+```{r Assessing the single child - Berne}
+# subsetting bernie and TD children
+# Bernie is child number 2 :-)
+Bernie <- subset(CleanTest_df, Child.ID == "2")
+TD_df <- subset(df, Diagnosis == "TD")
+
+mean(Bernie$CHI_MLU)
+mean(TD_df$CHI_MLU)
+# across all visits 
+
+# Finding the mean CHI_MLU of the TD children for each visit
+TD_MLU_table <- data.frame(aggregate(TD_df[, 13], list(TD_df$Visit), mean)) #"Group.1" = visit and "x" = CHI_MLU mean
+TD_MLU_table <- rename(TD_MLU_table, Visit = Group.1)
+
+TD_MLU_table
+
+
 
 ```
 
