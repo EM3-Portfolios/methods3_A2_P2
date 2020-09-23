@@ -103,41 +103,6 @@ CleanUpData <- function(Demo,LU,Word){
 
 
 
-```{r}
-
-Cross_Validate <- function(modelx){
-  k <-  10
-folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
-trainRMSE <- rep(NA, k)
-testRMSE <- rep(NA, k)
-i <- 1
-
-for (fold in folds){
-  train = subset(df, !(Child.ID %in% fold))
-  test = subset(df, Child.ID %in% fold)
-  model = lmer(modelx, train) 
-  test$prediction <- predict(model, test, allow.new.levels = TRUE)
-  train$prediction <- fitted(model)
-  trainRMSE[i] <- RMSE(train$types_CHI, fitted(model))
-  testRMSE[i] <- RMSE(test$types_CHI, test$prediction)
-  i <- i + 1
-  
-}
-trainRMSE
-testRMSE
-}
-
-```
-
-
-
-
-```{r}
-Cross_Validate(modelx = ("CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1 + (1 | Child.ID"))
-
-
-```
-
 
 
 ```{r, include = FALSE}
@@ -293,14 +258,13 @@ for (fold in folds){
 trainRMSE_m8
 testRMSE_m8
 
-#result <- c()
 ```
 
 
 
 #- Report the results and comment on them. 
 ```{r}
-
+crossValidation <- data.frame(trainRMSE, testRMSE, trainRMSE_m8, testRMSE_m8)
 
 ```
 
@@ -311,7 +275,7 @@ testRMSE_m8
 
 # Bonus Question 1: What is the effect of changing the number of folds? Can you plot RMSE as a function of number of folds?
 # Bonus Question 2: compare the cross-validated predictive error against the actual predictive error on the test data
-```
+
 
 [HERE GOES YOUR ANSWER]
 
@@ -328,6 +292,8 @@ You want to evaluate:
 - how does the child fare compared to the model predictions at Visit 6? Is the child below or above expectations? (tip: use the predict() function on Bernie's data only and compare the prediction with the actual performance of the child)
 
 ```{r}
+Bernie <- subset(SUBJ = Bernie., Word) 
+
 
 ```
 
