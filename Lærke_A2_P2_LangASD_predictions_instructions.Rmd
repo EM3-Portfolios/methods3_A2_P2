@@ -111,8 +111,22 @@ CleanUpData <- function(Demo,LU,Word){
 
 
 ```{r setting up data and columns}
-# Load training Data
+# Loading training Data
 df <- read_csv("data_clean.csv")
+
+
+# Removing NAs from certain columns
+completeFun <- function(data, desiredCols) {
+  completeVec <- complete.cases(data[, desiredCols])
+  return(data[completeVec, ])
+}
+
+df <- completeFun(df, "CHI_MLU")
+df <- completeFun(df, "Age")
+
+df <- completeFun(df, "verbalIQ1")
+df <- completeFun(df, "nonVerbalIQ1")
+df <- completeFun(df, "Socialization1")
 ```
 
 
@@ -145,25 +159,10 @@ df <- read_csv("data_clean.csv")
 ```{r load models and view r.squared}
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
 # The models: best quad for h1, last one with age instead of VISIT
-quadratic <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
-model8 <- lmer(CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1 + (1 | Child.ID), df)
 
-# Comparing the R^2 values for the two models:
-r.squaredGLMM(quadratic)
-r.squaredGLMM(model8)
+model <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 + Diagnosis + MOT_MLU | Child.ID), df)
 
-# Comparing the AIC and BIC values for the two models:
-m_aic <- AIC(quadratic, model8)
-m_bic <- BIC(quadratic, model8)
-mdl_com_df <- tibble( Model = c("quadratic", "model8"),
-                          AIC=m_aic$AIC, 
-                          AIC_Weight = round(Weights(m_aic), 3),
-                          BIC=m_bic$BIC,
-                          BIC_Weight = round(Weights(m_bic),3)
-                          )
-mdl_com_df
 
-# Model 8 has higher R^2 and lower AIC and BIC values.
 ```
 
 
@@ -171,7 +170,7 @@ mdl_com_df
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
 
 # Making a list of the model predictions:
-predictions_a2 <- predict(model8, df, allow.new.level = TRUE)
+predictions_a2 <- predict(model, df, allow.new.level = TRUE)
 # Comparing model predictions to actual observations:
 RMSE(df$CHI_MLU, predictions_a2, na.rm = TRUE)
 # The average residual (difference between observed and predicted value) is 0.29 from the observed traning data to the model predictions.
@@ -190,11 +189,11 @@ completeFun <- function(data, desiredCols) {
   return(data[completeVec, ])
 }
 
-df <- completeFun(df, "CHI_MLU")
-df <- completeFun(df, "Age")
+#df <- completeFun(df, "CHI_MLU")
+#df <- completeFun(df, "Age")
 
 # Making a list of the model fit:
-fit <- fitted(model8)
+fit <- fitted(model)
 # Comparing model predictions to actual observations:
 RMSE(df$CHI_MLU, fit, na.rm = TRUE)
 # The average residual (difference between observed and predicted value) is 0.29 from the observed traning data to the model predictions.
@@ -222,7 +221,7 @@ CleanTest_df <- rename(CleanTest_df, ADOS1 = Ados1)
 
 ```{r}
 #- test the performance of the models on the test data (Tips: google the functions "predict()")
-predictions_againstTrain <- predict(model8, CleanTest_df, allow.new.levels = TRUE)
+predictions_againstTrain <- predict(model, CleanTest_df, allow.new.levels = TRUE)
 RMSE(CleanTest_df$CHI_MLU, predictions_againstTrain, na.rm = TRUE)
 
 # Here, the average residual AKA the root mean squared error is 0.41 from the observed TEST data to the model predictions
@@ -238,7 +237,7 @@ mean(CleanTest_df$CHI_MLU, na.rm = T)
 #- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
 
 predictInterval(
-  model8,
+  model,
   CleanTest_df,
   which = c("full", "fixed", "random", "all"),
   level = 0.8,
@@ -270,20 +269,6 @@ In this exercise you have to use cross-validation to calculate the predictive er
 - (Tips): google the function "createFolds";  loop through each fold, train both models on the other folds and test them on the fold)
 
 ```{r}
-completeFun <- function(data, desiredCols) {
-  completeVec <- complete.cases(data[, desiredCols])
-  return(data[completeVec, ])
-}
-
-df <- completeFun(df, "CHI_MLU")
-df <- completeFun(df, "Age")
-
-df <- completeFun(df, "verbalIQ1")
-df <- completeFun(df, "nonVerbalIQ1")
-df <- completeFun(df, "Socialization1")
-
-
-
 # Basic model:
 #basic <- lmer(CHI_MLU ~ Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
 
@@ -312,35 +297,35 @@ testRMSE_basic
 # For the other model:
 k <-  10
 folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
-trainRMSE_m8 <- rep(NA, k)
-testRMSE_m8 <- rep(NA, k)
+trainRMSE_m <- rep(NA, k)
+testRMSE_m <- rep(NA, k)
 i <- 1
 
 for (fold in folds){
   train = subset(df, !(Child.ID %in% fold))
   test = subset(df, Child.ID %in% fold)
-  model = lmer(CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1 + (1 | Child.ID), train)
+  model = lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 + Diagnosis + MOT_MLU | Child.ID), train)
   test$prediction <- predict(model, test, allow.new.levels = TRUE)
   train$prediction <- fitted(model)
-  trainRMSE_m8[i] <- RMSE(train$CHI_MLU, fitted(model))
-  testRMSE_m8[i] <- RMSE(test$CHI_MLU, test$prediction)
+  trainRMSE_m[i] <- RMSE(train$CHI_MLU, fitted(model))
+  testRMSE_m[i] <- RMSE(test$CHI_MLU, test$prediction)
   i <- i + 1
 }
 
-trainRMSE_m8
-testRMSE_m8
+trainRMSE_m
+testRMSE_m
 
-crossValidation <- data.frame(trainRMSE_basic, testRMSE_basic, trainRMSE_m8, testRMSE_m8)
+crossValidation <- data.frame(trainRMSE_basic, testRMSE_basic, trainRMSE_m, testRMSE_m)
 crossValidation$basic_diff <- abs(crossValidation$trainRMSE_basic - crossValidation$testRMSE_basic)
-crossValidation$m8_diff <- abs(crossValidation$trainRMSE_m8 - crossValidation$testRMSE_m8)
+crossValidation$m_diff <- abs(crossValidation$trainRMSE_m - crossValidation$testRMSE_m)
 
 mean(crossValidation$basic_diff)
-mean(crossValidation$m8_diff)
+mean(crossValidation$m_diff)
 
 mean(crossValidation$trainRMSE_basic)
 mean(crossValidation$testRMSE_basic)
-mean(crossValidation$trainRMSE_m8)
-mean(crossValidation$testRMSE_m8)
+mean(crossValidation$trainRMSE_m)
+mean(crossValidation$testRMSE_m)
 ```
 
 
@@ -351,14 +336,14 @@ mean(crossValidation$testRMSE_m8)
 
 
 ```{r}
-# Create the basic model of ChildMLU as a function of Time and Diagnosis (don't forget the random effects!).
-basic <- lmer(CHI_MLU ~ Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df) # Used to be called lm4
-
-#- Make a cross-validated version of the model. (Tips: google the function "createFolds";  loop through each fold, train a model on the other folds and test it on the fold)
-
-#- Report the results and comment on them. 
-
 #- Now try to find the best possible predictive model of ChildMLU, that is, the one that produces the best cross-validated results.
+
+
+# Models to test in the first round (with varying random slopes):
+# m1 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 + Diagnosis + MOT_MLU | Child.ID), train)
+# m2 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 | Child.ID), train)
+# m3 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 +  MOT_MLU | Child.ID), train)
+# m4 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 + Diagnosis | Child.ID), train)
 
 
 ######### m1 ##########
