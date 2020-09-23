@@ -110,6 +110,7 @@ df1 <- read_csv("merged_df_assignment1.csv")
 df1$X1 <- NULL
 df <- read_csv("data_clean.csv")
 
+
 Demo <- read_csv("demo_test.csv")
 LU <- read_csv("LU_test.csv")
 Word <- read_csv("token_test.csv")
@@ -143,16 +144,35 @@ r.squaredGLMM(chi_mlu2) #Rsquared: 0.846
 
 #Calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
 
-predictions <- predict(chi_mlu2, df)
+predictions <- predict(chi_mlu2, new_df)
+rmse(chi_mlu2$new_df, predictions)
+predictions <- fitted(chi_mlu2, new_df)
 
-rmse(chi_mlu1$df, predictions)
+k <-  6
+folds <- createFolds(unique(new_df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE <- rep(NA, k)
+testRMSE <- rep(NA, k)
+i <- 1
 
-predictions <- fitted(chi_mlu1, df)
-
-
+for (fold in folds){
+  train = subset(new_df, !(Child.ID %in% fold)) #this parenthesis?
+  test = subset(new_df, Child.ID %in% fold)
+  model = lmer(CHI_MLU ~ Age * I(ADOS2^2) + ExpressiveLangRaw.x + (1 | Child.ID), train)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE[i] <- RMSE(train$types_CHI, fitted(model))
+  testRMSE[i] <- RMSE(test$types_CHI, test$prediction)
+  i <- i + 1
+}
+fitted(model)
+trainRMSE
+testRMSE
 
 #- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
 
+#make new datset with only predictors and dependent variable and omit the NAs, make a pipe function subset dataframe, the assignment error, then you write subset df you make pipes, then a new line, and you'll have the same amount of observations. also with the test data, you can merge the function together
+
+Subset for training data, another for test dataframe, 
 
 # Test data
 
