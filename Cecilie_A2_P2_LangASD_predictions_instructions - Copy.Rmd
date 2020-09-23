@@ -102,6 +102,44 @@ CleanUpData <- function(Demo,LU,Word){
 ```
 
 
+
+```{r}
+
+Cross_Validate <- function(modelx){
+  k <-  10
+folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE <- rep(NA, k)
+testRMSE <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(df, !(Child.ID %in% fold))
+  test = subset(df, Child.ID %in% fold)
+  model = lmer(modelx, train) 
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE[i] <- RMSE(train$types_CHI, fitted(model))
+  testRMSE[i] <- RMSE(test$types_CHI, test$prediction)
+  i <- i + 1
+  
+}
+trainRMSE
+testRMSE
+}
+
+```
+
+
+
+
+```{r}
+Cross_Validate(modelx = ("CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1 + (1 | Child.ID"))
+
+
+```
+
+
+
 ```{r, include = FALSE}
 # Load training Data
 Word <- read_csv("token_test.csv")
@@ -114,6 +152,14 @@ LU <- read_csv("token_test.csv")
 #_____________________________________
 
 df <- read_csv("data_clean.csv")
+# Removing the rows where the CHI_MLU is NA
+completeFun <- function(data, desiredCols) {
+  completeVec <- complete.cases(data[, desiredCols])
+  return(data[completeVec, ])
+}
+
+df <- completeFun(df, "CHI_MLU")
+df <- completeFun(df, "Age")
 ```
 
 
@@ -198,6 +244,8 @@ In this exercise you have to use cross-validation to calculate the predictive er
 bac_midel <- lmer(CHI_MLU ~ Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
 
 
+
+
 ```
 
 #- Make a cross-validated version of the model. (Tips: google the function "createFolds";  loop through each fold, train a model on the other folds and test it on the fold)
@@ -223,9 +271,36 @@ for (fold in folds){
 trainRMSE
 testRMSE
 ```
+```{r}
+# For the other model:
+k <-  10
+folds <- createFolds(unique(df$Child.ID), k = k, list = TRUE, returnTrain = FALSE)
+trainRMSE_m8 <- rep(NA, k)
+testRMSE_m8 <- rep(NA, k)
+i <- 1
+
+for (fold in folds){
+  train = subset(df, !(Child.ID %in% fold))
+  test = subset(df, Child.ID %in% fold)
+  model = lmer(CHI_MLU ~ Age * I(ADOS1^2) + verbalIQ1 + (1 | Child.ID), train)
+  test$prediction <- predict(model, test, allow.new.levels = TRUE)
+  train$prediction <- fitted(model)
+  trainRMSE_m8[i] <- RMSE(train$types_CHI, fitted(model))
+  testRMSE_m8[i] <- RMSE(test$types_CHI, test$prediction)
+  i <- i + 1
+}
+
+trainRMSE_m8
+testRMSE_m8
+
+#result <- c()
+```
+
+
 
 #- Report the results and comment on them. 
 ```{r}
+
 
 ```
 
