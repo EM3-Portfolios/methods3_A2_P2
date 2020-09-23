@@ -543,12 +543,11 @@ You want to evaluate:
 bernie <- filter(CleanTest_df, Child.ID == "2")
 
 # Making a df with only data for TD children
-td <- filter(CleanTest_df, Diagnosis == "TD")
+td <- filter(df, Diagnosis == "TD")
 
 # Finding the mean CHI_MLU of the TD children for each visit
-MLU_mean_perVisit <- data.frame(aggregate(td[, 12], list(td$Visit), mean)) #"Group.1" = visit and "x" = CHI_MLU mean
+MLU_mean_perVisit <- data.frame(aggregate(td[, 13], list(td$Visit), mean)) #"Group.1" = visit and "x" = CHI_MLU mean
 MLU_mean_perVisit <- rename(MLU_mean_perVisit, Visit = Group.1)
-MLU_mean_perVisit <- rename(MLU_mean_perVisit, mean_CHI_MLU = x)
 
 
 ```
