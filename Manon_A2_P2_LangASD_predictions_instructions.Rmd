@@ -307,3 +307,33 @@ Then try to find the best possible predictive model of ChildMLU, that is, the on
 ### OPTIONAL: Exercise 5): Using Lasso for model selection
 Welcome to the last secret exercise. If you have already solved the previous exercises, and still there's not enough for you, you can expand your expertise by learning about penalizations. Check out this tutorial: http://machinelearningmastery.com/penalized-regression-in-r/ and make sure to google what penalization is, with a focus on L1 and L2-norms. Then try them on your data!
 
+```{r}
+# lecture 4
+library(simr)
+m <- lmer(types_CHI ~ Visit + Diagnosis + (1 + Visit | Child.ID), df, REML = FALSE)
+
+
+
+# the one from the lecture using visit:
+powerV <- powerSim(m, fixed("Visit"), nsim = 50)
+fixef(m)["Visit"] <- 10
+powerCurveV <- powerCurve(m, fixed("Visit"), along = "Child.ID", nsim = 50)
+powerV
+plot(powerCurveV)
+
+
+
+
+# the one with diagnosis
+powerD <- powerSim(m, fixed("Diagnosis"), nsim = 50) # warning: "this appears to be an observed power calculation"
+powerD
+
+fixef(m)["DiagnosisTD"] <- 30
+# "Minimum effect size we care for"
+
+# ploting a power curve
+powerCurveD <- powerCurve(m, fixed("Diagnosis"), along = "Child.ID", nsim = 5) 
+plot(powerCurveD)
+
+```
+
