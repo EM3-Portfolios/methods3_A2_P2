@@ -110,7 +110,7 @@ CleanUpData <- function(Demo,LU,Word){
 ```
 
 
-```{r setting up data and columns}
+```{r setting up data and columns, Cecilie}
 # Loading training Data
 df <- read_csv("data_clean.csv")
 
@@ -130,7 +130,7 @@ df <- completeFun(df, "Socialization1")
 ```
 
 
-```{r load models and view r.squared}
+```{r load models and view r.squared, Cecilie}
 #- recreate the models you chose last time (just write the code again and apply it to Train Data)
 # The models: best quad for h1, last one with age instead of VISIT
 
@@ -140,7 +140,7 @@ model <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verba
 ```
 
 
-```{r evaluating performance of model using RMSE() function}
+```{r evaluating performance of model using RMSE() function, Anne}
 #- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
 
 # Making a list of the model predictions:
@@ -155,7 +155,7 @@ mean(df$CHI_MLU, na.rm = T)
 ```
 
 
-```{r}
+```{r, Anne}
 #- create the test dataset (apply the code from assignment 1 or my function to clean up the 3 test datasets)
 # loading test datasets
 Demo <- read_csv("demo_test.csv")
@@ -171,7 +171,7 @@ CleanTest_df <- rename(CleanTest_df, ADOS1 = Ados1)
 ```
 
 
-```{r}
+```{r, Alba}
 #- test the performance of the models on the test data (Tips: google the functions "predict()")
 predictions_againstTrain <- predict(model, CleanTest_df, allow.new.levels = TRUE)
 RMSE(CleanTest_df$CHI_MLU, predictions_againstTrain, na.rm = TRUE)
@@ -180,16 +180,6 @@ RMSE(CleanTest_df$CHI_MLU, predictions_againstTrain, na.rm = TRUE)
 # For context, the mean observed CHI_MLU in the test data is 2.1 (the RMSE is in the same original measurement unit)
 mean(CleanTest_df$CHI_MLU, na.rm = T)
 ```
-
-
-
-
-
-```{r}
-#- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
-
-```
-
 
 '''
 
@@ -204,7 +194,7 @@ In this exercise you have to use cross-validation to calculate the predictive er
 - Use cross-validation to compare your model from last week with the basic model (Child MLU as a function of Time and Diagnosis, and don't forget the random effects!)
 - (Tips): google the function "createFolds";  loop through each fold, train both models on the other folds and test them on the fold)
 
-```{r}
+```{r, Manon}
 # Basic model:
 #basic <- lmer(CHI_MLU ~ Visit*Diagnosis + (1 + Diagnosis + MOT_MLU | Child.ID), df)
 
@@ -265,7 +255,7 @@ crossValidationMean <- data.frame(models, mean_train, mean_test) # m wins
 - Bonus Question 2: compare the cross-validated predictive error against the actual predictive error on the test data
 
 
-```{r}
+```{r, Lærke}
 #- Now try to find the best possible predictive model of ChildMLU, that is, the one that produces the best cross-validated results.
 
 
@@ -326,10 +316,10 @@ for (fold in folds){
   trainRMSE_m3[i] <- RMSE(train$CHI_MLU, fitted(model))
   testRMSE_m3[i] <- RMSE(test$CHI_MLU, test$prediction)
   i <- i + 1
-}
+```
 
 
-
+```{r, Alba}
 # Making output dataframes:
 crossValidation1 <- data.frame(trainRMSE_m, testRMSE_m, trainRMSE_m1, testRMSE_m1, trainRMSE_m2, testRMSE_m2, trainRMSE_m3, testRMSE_m3)
 
@@ -345,7 +335,7 @@ crossValidation1Mean <- data.frame(models, mean_train, mean_test) # m3 wins
 
 
 
-```{r}
+```{r, Anne}
 ######### m4 ##########
 
 k <-  10
@@ -436,7 +426,7 @@ You want to evaluate:
 
 - how does the child fare in ChildMLU compared to the average TD child at each visit? Define the distance in terms of absolute difference between this Child and the average TD.
 
-```{r}
+```{r, Cecilie}
 # Making a df with only data for Bernie
 bernie <- filter(CleanTest_df, Child.ID == "2")
 
@@ -458,7 +448,7 @@ mean(bernie$CHI_MLU) - mean(MLU_mean_perVisit$CHI_MLU)
 
 - how does the child fare compared to the model predictions at Visit 6? Is the child below or above expectations? (tip: use the predict() function on Bernie's data only and compare the prediction with the actual performance of the child)
 
-```{r}
+```{r, Lærke}
 # Our model (m3):
 m3 <- lmer(CHI_MLU ~ Visit + I(Visit^2) + Diagnosis + Visit*Diagnosis + verbalIQ1 + (1 + Diagnosis | Child.ID), df)
 
